@@ -10,6 +10,7 @@ import org.jetbrains.java.decompiler.struct.ContextUnit;
 import org.jetbrains.java.decompiler.struct.StructClass;
 import org.jetbrains.java.decompiler.struct.StructContext;
 import org.jetbrains.java.decompiler.struct.lazy.LazyLoader;
+import org.jetbrains.java.decompiler.util.DataInputFullStream;
 import org.objectweb.asm.tree.MethodNode;
 
 import java.io.File;
@@ -46,6 +47,7 @@ public class FernflowerDecompiler extends Decompiler implements IBytecodeProvide
         options.put("ren", false);
         options.put("inn", true);
         options.put("lac", false);
+        options.put("nls", false);
     }
 
     private byte[] bytes;
@@ -65,7 +67,7 @@ public class FernflowerDecompiler extends Decompiler implements IBytecodeProvide
             }
             Fernflower f = new Fernflower(this, this, map, new PrintStreamLogger(JByteMod.LOGGER));
             StructContext sc = f.structContext;
-            StructClass cl = new StructClass(b, true, sc.loader);
+            StructClass cl = StructClass.create(new DataInputFullStream(b), true, sc.loader);
             sc.getClasses().put(cn.name, cl);
             //instead of loading a file use custom bridge, created a few getters
             String fakePath = new File("none.class").getAbsolutePath();

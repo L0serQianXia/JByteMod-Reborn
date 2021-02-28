@@ -1,7 +1,6 @@
-// Copyright 2000-2017 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file.
+// Copyright 2000-2021 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file.
 package org.jetbrains.java.decompiler.struct.consts;
 
-import me.grax.jbytemod.JByteMod;
 import org.jetbrains.java.decompiler.code.CodeConstants;
 import org.jetbrains.java.decompiler.main.DecompilerContext;
 import org.jetbrains.java.decompiler.modules.renamer.PoolInterceptor;
@@ -65,6 +64,8 @@ public class ConstantPool implements NewClassNameBuilder {
         case CodeConstants.CONSTANT_Class:
         case CodeConstants.CONSTANT_String:
         case CodeConstants.CONSTANT_MethodType:
+        case CodeConstants.CONSTANT_Module:
+        case CodeConstants.CONSTANT_Package:
           pool.add(new PrimitiveConstant(tag, in.readUnsignedShort()));
           nextPass[0].set(i);
           break;
@@ -93,11 +94,7 @@ public class ConstantPool implements NewClassNameBuilder {
     for (BitSet pass : nextPass) {
       int idx = 0;
       while ((idx = pass.nextSetBit(idx + 1)) > 0) {
-        try{
-          pool.get(idx).resolveConstant(this);
-        }catch(Exception e){
-          JByteMod.LOGGER.println("Failed to resolve a complex pool element, bypassed.");
-        }
+        pool.get(idx).resolveConstant(this);
       }
     }
 
@@ -215,18 +212,15 @@ public class ConstantPool implements NewClassNameBuilder {
     String newName = interceptor.getName(vt.value);
     if (newName != null) {
       StringBuilder buffer = new StringBuilder();
-
       if (vt.arrayDim > 0) {
         for (int i = 0; i < vt.arrayDim; i++) {
-          buffer.append('[');
+          buffer.append("[");
         }
-
         buffer.append('L').append(newName).append(';');
       }
       else {
         buffer.append(newName);
       }
-
       return buffer.toString();
     }
 

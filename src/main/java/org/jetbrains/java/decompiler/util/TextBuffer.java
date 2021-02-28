@@ -1,319 +1,285 @@
+/*
+ * Copyright 2000-2017 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file.
+ */
 package org.jetbrains.java.decompiler.util;
 
 import org.jetbrains.java.decompiler.main.DecompilerContext;
+import org.jetbrains.java.decompiler.main.extern.IFernflowerPreferences;
 
 import java.util.*;
-import java.util.Map.Entry;
 
+/**
+ * Allows to connect text with resulting lines
+ *
+ * @author egor
+ */
+@SuppressWarnings("UnusedReturnValue")
 public class TextBuffer {
-    private final String myLineSeparator = DecompilerContext.getNewLineSeparator();
-    private final String myIndent = (String)DecompilerContext.getProperty("ind");
-    private final StringBuilder myStringBuilder;
-    private Map myLineToOffsetMapping = null;
-    private Map myLineMapping = null;
+  private final String myLineSeparator = DecompilerContext.getNewLineSeparator();
+  private final String myIndent = (String)DecompilerContext.getProperty(IFernflowerPreferences.INDENT_STRING);
+  private final StringBuilder myStringBuilder;
+  private Map<Integer, Integer> myLineToOffsetMapping = null;
 
-    public TextBuffer() {
-        this.myStringBuilder = new StringBuilder();
+  public TextBuffer() {
+    myStringBuilder = new StringBuilder();
+  }
+
+  public TextBuffer(int size) {
+    myStringBuilder = new StringBuilder(size);
+  }
+
+  public TextBuffer(String text) {
+    myStringBuilder = new StringBuilder(text);
+  }
+
+  public TextBuffer append(String str) {
+    myStringBuilder.append(str);
+    return this;
+  }
+
+  public TextBuffer append(char ch) {
+    myStringBuilder.append(ch);
+    return this;
+  }
+
+  public TextBuffer append(int i) {
+    myStringBuilder.append(i);
+    return this;
+  }
+
+  public TextBuffer appendLineSeparator() {
+    myStringBuilder.append(myLineSeparator);
+    return this;
+  }
+
+  public TextBuffer appendIndent(int length) {
+    while (length-- > 0) {
+      append(myIndent);
     }
+    return this;
+  }
 
-    public TextBuffer(int size) {
-        this.myStringBuilder = new StringBuilder(size);
+  public TextBuffer prepend(String s) {
+    myStringBuilder.insert(0, s);
+    shiftMapping(s.length());
+    return this;
+  }
+
+  public TextBuffer enclose(String left, String right) {
+    prepend(left);
+    append(right);
+    return this;
+  }
+
+  public boolean containsOnlyWhitespaces() {
+    for (int i = 0; i < myStringBuilder.length(); i++) {
+      if (myStringBuilder.charAt(i) != ' ') {
+        return false;
+      }
     }
+    return true;
+  }
 
-    public TextBuffer(String text) {
-        this.myStringBuilder = new StringBuilder(text);
+  @Override
+  public String toString() {
+    String original = myStringBuilder.toString();
+    if (myLineToOffsetMapping == null || myLineToOffsetMapping.isEmpty()) {
+      if (myLineMapping != null) {
+        return addOriginalLineNumbers();
+      }
+      return original;
     }
-
-    public TextBuffer append(String str) {
-        this.myStringBuilder.append(str);
-        return this;
-    }
-
-    public TextBuffer append(char ch) {
-        this.myStringBuilder.append(ch);
-        return this;
-    }
-
-    public TextBuffer append(int i) {
-        this.myStringBuilder.append(i);
-        return this;
-    }
-
-    public TextBuffer appendLineSeparator() {
-        this.myStringBuilder.append(this.myLineSeparator);
-        return this;
-    }
-
-    public TextBuffer appendIndent(int length) {
-        while(length-- > 0) {
-            this.append(this.myIndent);
+    else {
+      StringBuilder res = new StringBuilder();
+      String[] srcLines = original.split(myLineSeparator);
+      int currentLineStartOffset = 0;
+      int currentLine = 0;
+      int previousMarkLine = 0;
+      int dumpedLines = 0;
+      ArrayList<Integer> linesWithMarks = new ArrayList<>(myLineToOffsetMapping.keySet());
+      Collections.sort(linesWithMarks);
+      for (Integer markLine : linesWithMarks) {
+        Integer markOffset = myLineToOffsetMapping.get(markLine);
+        while (currentLine < srcLines.length) {
+          String line = srcLines[currentLine];
+          int lineEnd = currentLineStartOffset + line.length() + myLineSeparator.length();
+          if (markOffset <= lineEnd) {
+            int requiredLine = markLine - 1;
+            int linesToAdd = requiredLine - dumpedLines;
+            dumpedLines = requiredLine;
+            appendLines(res, srcLines, previousMarkLine, currentLine, linesToAdd);
+            previousMarkLine = currentLine;
+            break;
+          }
+          currentLineStartOffset = lineEnd;
+          currentLine++;
         }
+      }
+      if (previousMarkLine < srcLines.length) {
+        appendLines(res, srcLines, previousMarkLine, srcLines.length, srcLines.length - previousMarkLine);
+      }
 
-        return this;
+      return res.toString();
     }
+  }
 
-    public TextBuffer prepend(String s) {
-        this.myStringBuilder.insert(0, s);
-        this.shiftMapping(s.length());
-        return this;
-    }
-
-    public TextBuffer enclose(String left, String right) {
-        this.prepend(left);
-        this.append(right);
-        return this;
-    }
-
-    public boolean containsOnlyWhitespaces() {
-        for(int i = 0; i < this.myStringBuilder.length(); ++i) {
-            if (this.myStringBuilder.charAt(i) != ' ') {
-                return false;
-            }
+  private String addOriginalLineNumbers() {
+    StringBuilder sb = new StringBuilder();
+    int lineStart = 0, lineEnd;
+    int count = 0, length = myLineSeparator.length();
+    while ((lineEnd = myStringBuilder.indexOf(myLineSeparator, lineStart)) > 0) {
+      ++count;
+      sb.append(myStringBuilder.substring(lineStart, lineEnd));
+      Set<Integer> integers = myLineMapping.get(count);
+      if (integers != null) {
+        sb.append("//");
+        for (Integer integer : integers) {
+          sb.append(' ').append(integer);
         }
-
-        return true;
+      }
+      sb.append(myLineSeparator);
+      lineStart = lineEnd + length;
     }
+    if (lineStart < myStringBuilder.length()) {
+      sb.append(myStringBuilder.substring(lineStart));
+    }
+    return sb.toString();
+  }
 
-    public String toString() {
-        String original = this.myStringBuilder.toString();
-        if (this.myLineToOffsetMapping != null && !this.myLineToOffsetMapping.isEmpty()) {
-            StringBuilder res = new StringBuilder();
-            String[] srcLines = original.split(this.myLineSeparator);
-            int currentLineStartOffset = 0;
-            int currentLine = 0;
-            int previousMarkLine = 0;
-            int dumpedLines = 0;
-            ArrayList linesWithMarks = new ArrayList(this.myLineToOffsetMapping.keySet());
-            Collections.sort(linesWithMarks);
-            Iterator var9 = linesWithMarks.iterator();
-
-            while(true) {
-                while(var9.hasNext()) {
-                    Integer markLine = (Integer)var9.next();
-
-                    for(Integer markOffset = (Integer)this.myLineToOffsetMapping.get(markLine); currentLine < srcLines.length; ++currentLine) {
-                        String line = srcLines[currentLine];
-                        int lineEnd = currentLineStartOffset + line.length() + this.myLineSeparator.length();
-                        if (markOffset <= lineEnd) {
-                            int requiredLine = markLine - 1;
-                            int linesToAdd = requiredLine - dumpedLines;
-                            dumpedLines = requiredLine;
-                            this.appendLines(res, srcLines, previousMarkLine, currentLine, linesToAdd);
-                            previousMarkLine = currentLine;
-                            break;
-                        }
-
-                        currentLineStartOffset = lineEnd;
-                    }
-                }
-
-                if (previousMarkLine < srcLines.length) {
-                    this.appendLines(res, srcLines, previousMarkLine, srcLines.length, srcLines.length - previousMarkLine);
-                }
-
-                return res.toString();
-            }
-        } else {
-            return this.myLineMapping != null ? this.addOriginalLineNumbers() : original;
+  private void appendLines(StringBuilder res, String[] srcLines, int from, int to, int requiredLineNumber) {
+    if (to - from > requiredLineNumber) {
+      List<String> strings = compactLines(Arrays.asList(srcLines).subList(from, to) ,requiredLineNumber);
+      int separatorsRequired = requiredLineNumber - 1;
+      for (String s : strings) {
+        res.append(s);
+        if (separatorsRequired-- > 0) {
+          res.append(myLineSeparator);
         }
+      }
+      res.append(myLineSeparator);
     }
+    else if (to - from <= requiredLineNumber) {
+      for (int i = from; i < to; i++) {
+        res.append(srcLines[i]).append(myLineSeparator);
+      }
+      for (int i = 0; i < requiredLineNumber - to + from; i++) {
+        res.append(myLineSeparator);
+      }
+    }
+  }
 
-    private String addOriginalLineNumbers() {
-        StringBuilder sb = new StringBuilder();
-        int lineStart = 0;
-        int count = 0;
+  public int length() {
+    return myStringBuilder.length();
+  }
 
-        int lineEnd;
-        for(int length = this.myLineSeparator.length(); (lineEnd = this.myStringBuilder.indexOf(this.myLineSeparator, lineStart)) > 0; lineStart = lineEnd + length) {
-            ++count;
-            sb.append(this.myStringBuilder.substring(lineStart, lineEnd));
-            Set integers = (Set)this.myLineMapping.get(count);
-            if (integers != null) {
-                sb.append("//");
-                Iterator var7 = integers.iterator();
+  public void setStart(int position) {
+    myStringBuilder.delete(0, position);
+    shiftMapping(-position);
+  }
 
-                while(var7.hasNext()) {
-                    Integer integer = (Integer)var7.next();
-                    sb.append(' ').append(integer);
-                }
-            }
-
-            sb.append(this.myLineSeparator);
+  public void setLength(int position) {
+    myStringBuilder.setLength(position);
+    if (myLineToOffsetMapping != null) {
+      Map<Integer, Integer> newMap = new HashMap<>();
+      for (Map.Entry<Integer, Integer> entry : myLineToOffsetMapping.entrySet()) {
+        if (entry.getValue() <= position) {
+          newMap.put(entry.getKey(), entry.getValue());
         }
+      }
+      myLineToOffsetMapping = newMap;
+    }
+  }
 
-        if (lineStart < this.myStringBuilder.length()) {
-            sb.append(this.myStringBuilder.substring(lineStart));
+  public TextBuffer append(TextBuffer buffer) {
+    if (buffer.myLineToOffsetMapping != null && !buffer.myLineToOffsetMapping.isEmpty()) {
+      checkMapCreated();
+      for (Map.Entry<Integer, Integer> entry : buffer.myLineToOffsetMapping.entrySet()) {
+        myLineToOffsetMapping.put(entry.getKey(), entry.getValue() + myStringBuilder.length());
+      }
+    }
+    myStringBuilder.append(buffer.myStringBuilder);
+    return this;
+  }
+
+  private void shiftMapping(int shiftOffset) {
+    if (myLineToOffsetMapping != null) {
+      Map<Integer, Integer> newMap = new HashMap<>();
+      for (Map.Entry<Integer, Integer> entry : myLineToOffsetMapping.entrySet()) {
+        int newValue = entry.getValue();
+        if (newValue >= 0) {
+          newValue += shiftOffset;
         }
-
-        return sb.toString();
-    }
-
-    private void appendLines(StringBuilder res, String[] srcLines, int from, int to, int requiredLineNumber) {
-        if (to - from > requiredLineNumber) {
-            List strings = compactLines(Arrays.asList(srcLines).subList(from, to), requiredLineNumber);
-            int separatorsRequired = requiredLineNumber - 1;
-            Iterator var8 = strings.iterator();
-
-            while(var8.hasNext()) {
-                String s = (String)var8.next();
-                res.append(s);
-                if (separatorsRequired-- > 0) {
-                    res.append(this.myLineSeparator);
-                }
-            }
-
-            res.append(this.myLineSeparator);
-        } else if (to - from <= requiredLineNumber) {
-            int i;
-            for(i = from; i < to; ++i) {
-                res.append(srcLines[i]).append(this.myLineSeparator);
-            }
-
-            for(i = 0; i < requiredLineNumber - to + from; ++i) {
-                res.append(this.myLineSeparator);
-            }
+        if (newValue >= 0) {
+          newMap.put(entry.getKey(), newValue);
         }
-
+      }
+      myLineToOffsetMapping = newMap;
     }
+  }
 
-    public int length() {
-        return this.myStringBuilder.length();
+  private void checkMapCreated() {
+    if (myLineToOffsetMapping == null) {
+      myLineToOffsetMapping = new HashMap<>();
     }
+  }
 
-    public void setStart(int position) {
-        this.myStringBuilder.delete(0, position);
-        this.shiftMapping(-position);
+  public int countLines() {
+    return countLines(0);
+  }
+
+  public int countLines(int from) {
+    return count(myLineSeparator, from);
+  }
+
+  public int count(String substring, int from) {
+    int count = 0, length = substring.length(), p = from;
+    while ((p = myStringBuilder.indexOf(substring, p)) > 0) {
+      ++count;
+      p += length;
     }
+    return count;
+  }
 
-    public void setLength(int position) {
-        this.myStringBuilder.setLength(position);
-        if (this.myLineToOffsetMapping != null) {
-            Map newMap = new HashMap();
-            Iterator var3 = this.myLineToOffsetMapping.entrySet().iterator();
-
-            while(var3.hasNext()) {
-                Entry entry = (Entry)var3.next();
-                if ((Integer)entry.getValue() <= position) {
-                    newMap.put(entry.getKey(), entry.getValue());
-                }
-            }
-
-            this.myLineToOffsetMapping = newMap;
-        }
-
+  private static List<String> compactLines(List<String> srcLines, int requiredLineNumber) {
+    if (srcLines.size() < 2 || srcLines.size() <= requiredLineNumber) {
+      return srcLines;
     }
-
-    public TextBuffer append(TextBuffer buffer) {
-        if (buffer.myLineToOffsetMapping != null && !buffer.myLineToOffsetMapping.isEmpty()) {
-            this.checkMapCreated();
-            Iterator var2 = buffer.myLineToOffsetMapping.entrySet().iterator();
-
-            while(var2.hasNext()) {
-                Entry entry = (Entry)var2.next();
-                this.myLineToOffsetMapping.put(entry.getKey(), (Integer)entry.getValue() + this.myStringBuilder.length());
-            }
-        }
-
-        this.myStringBuilder.append(buffer.myStringBuilder);
-        return this;
+    List<String> res = new LinkedList<>(srcLines);
+    // first join lines with a single { or }
+    for (int i = res.size()-1; i > 0 ; i--) {
+      String s = res.get(i);
+      if (s.trim().equals("{") || s.trim().equals("}")) {
+        res.set(i-1, res.get(i-1).concat(s));
+        res.remove(i);
+      }
+      if (res.size() <= requiredLineNumber) {
+        return res;
+      }
     }
-
-    private void shiftMapping(int shiftOffset) {
-        if (this.myLineToOffsetMapping != null) {
-            Map newMap = new HashMap();
-            Iterator var3 = this.myLineToOffsetMapping.entrySet().iterator();
-
-            while(var3.hasNext()) {
-                Entry entry = (Entry)var3.next();
-                int newValue = (Integer)entry.getValue();
-                if (newValue >= 0) {
-                    newValue += shiftOffset;
-                }
-
-                if (newValue >= 0) {
-                    newMap.put(entry.getKey(), newValue);
-                }
-            }
-
-            this.myLineToOffsetMapping = newMap;
-        }
-
+    // now join empty lines
+    for (int i = res.size()-1; i > 0 ; i--) {
+      String s = res.get(i);
+      if (s.trim().isEmpty()) {
+        res.set(i-1, res.get(i-1).concat(s));
+        res.remove(i);
+      }
+      if (res.size() <= requiredLineNumber) {
+        return res;
+      }
     }
+    return res;
+  }
 
-    private void checkMapCreated() {
-        if (this.myLineToOffsetMapping == null) {
-            this.myLineToOffsetMapping = new HashMap();
-        }
+  private Map<Integer, Set<Integer>> myLineMapping = null; // new to original
 
+  public void dumpOriginalLineNumbers(int[] lineMapping) {
+    if (lineMapping.length > 0) {
+      myLineMapping = new HashMap<>();
+      for (int i = 0; i < lineMapping.length; i += 2) {
+        int key = lineMapping[i + 1];
+        Set<Integer> existing = myLineMapping.computeIfAbsent(key, k -> new TreeSet<>());
+        existing.add(lineMapping[i]);
+      }
     }
-
-    public int countLines() {
-        return this.countLines(0);
-    }
-
-    public int countLines(int from) {
-        return this.count(this.myLineSeparator, from);
-    }
-
-    public int count(String substring, int from) {
-        int count = 0;
-        int length = substring.length();
-
-        for(int p = from; (p = this.myStringBuilder.indexOf(substring, p)) > 0; p += length) {
-            ++count;
-        }
-
-        return count;
-    }
-
-    private static List compactLines(List srcLines, int requiredLineNumber) {
-        if (srcLines.size() >= 2 && srcLines.size() > requiredLineNumber) {
-            List res = new LinkedList(srcLines);
-
-            int i;
-            String s;
-            for(i = res.size() - 1; i > 0; --i) {
-                s = (String)res.get(i);
-                if (s.trim().equals("{") || s.trim().equals("}")) {
-                    res.set(i - 1, ((String)res.get(i - 1)).concat(s));
-                    res.remove(i);
-                }
-
-                if (res.size() <= requiredLineNumber) {
-                    return res;
-                }
-            }
-
-            for(i = res.size() - 1; i > 0; --i) {
-                s = (String)res.get(i);
-                if (s.trim().isEmpty()) {
-                    res.set(i - 1, ((String)res.get(i - 1)).concat(s));
-                    res.remove(i);
-                }
-
-                if (res.size() <= requiredLineNumber) {
-                    return res;
-                }
-            }
-
-            return res;
-        } else {
-            return srcLines;
-        }
-    }
-
-    public void dumpOriginalLineNumbers(int[] lineMapping) {
-        if (lineMapping.length > 0) {
-            this.myLineMapping = new HashMap();
-
-            for(int i = 0; i < lineMapping.length; i += 2) {
-                int key = lineMapping[i + 1];
-                Set existing = (Set)this.myLineMapping.computeIfAbsent(key, (k) -> {
-                    return new TreeSet();
-                });
-                existing.add(lineMapping[i]);
-            }
-        }
-
-    }
+  }
 }

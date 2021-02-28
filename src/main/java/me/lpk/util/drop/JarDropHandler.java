@@ -36,7 +36,10 @@ public class JarDropHandler extends TransferHandler {
         }
         user.preLoadJars(id);
         for (File jar : data) {
-            if (jar.getName().toLowerCase().endsWith(".jar")) {
+            String lowerName = jar.getName().toLowerCase();
+            boolean flag = lowerName.endsWith(".jar") || lowerName.endsWith(".class");
+
+            if (flag) {
                 user.onJarLoad(id, jar);
                 break;
             }

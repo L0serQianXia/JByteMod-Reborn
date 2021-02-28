@@ -1,5 +1,5 @@
 # JByteMod-Reborn
-A fork of JByteMod, but makes it reborn.
+A fork of JByteMod-Reborn, but makes it dead :(
 
 # Contributors
 GraxCode, UltraPanda, Ho3

@@ -8,7 +8,7 @@ import java.awt.*;
 
 public class PageEndPanel extends JPanel {
 
-    private static final String copyright = "\u00A9 GraxCode 2016 - 2019";
+    private static final String copyright = "\u00A9 GraxCode 2016 - 2021";
     private JProgressBar pb;
     private JLabel percent;
     private JLabel label;

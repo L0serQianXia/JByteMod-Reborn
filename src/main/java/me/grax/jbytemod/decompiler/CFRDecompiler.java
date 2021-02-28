@@ -11,6 +11,7 @@ import org.benf.cfr.reader.entities.Method;
 import org.benf.cfr.reader.entities.constantpool.ConstantPool;
 import org.benf.cfr.reader.state.ClassFileSourceImpl;
 import org.benf.cfr.reader.state.DCCommonState;
+import org.benf.cfr.reader.util.AnalysisType;
 import org.benf.cfr.reader.util.bytestream.BaseByteData;
 import org.benf.cfr.reader.util.getopt.OptionsImpl;
 import org.benf.cfr.reader.util.output.ToStringDumper;
@@ -29,6 +30,7 @@ public class CFRDecompiler extends Decompiler {
     static {
         options.put("aexagg", "false");
         options.put("allowcorrecting", "true");
+        options.put("antiobf", "false");
         options.put("arrayiter", "true");
         options.put("caseinsensitivefs", "false");
         options.put("clobber", "false");
@@ -56,7 +58,11 @@ public class CFRDecompiler extends Decompiler {
         options.put("labelledblocks", "true");
         options.put("lenient", "false");
         options.put("liftconstructorinit", "true");
+        options.put("lomem", "false");
+        options.put("obfattr", "false");
+        options.put("obfcontrol", "false");
         options.put("override", "true");
+        options.put("previewfeatures", "true");
         options.put("pullcodecase", "false");
         options.put("recover", "true");
         options.put("recovertypeclash", "false");
@@ -72,13 +78,19 @@ public class CFRDecompiler extends Decompiler {
         options.put("renameillegalidents", "false");
         options.put("showinferrable", "false");
         options.put("silent", "false");
+        options.put("skipbatchinnerclasses", "true");
+        options.put("staticinitreturn", "true");
         options.put("stringbuffer", "false");
         options.put("stringbuilder", "true");
+        options.put("stringconcat", "true");
         options.put("sugarasserts", "true");
         options.put("sugarboxing", "true");
         options.put("sugarenums", "true");
+        options.put("trackbytecodeloc", "false");
         options.put("tidymonitors", "true");
+        options.put("tryresources", "true");
         options.put("usenametable", "true");
+        options.put("usesignatures", "true");
     }
 
     public CFRDecompiler(JByteMod jbm, DecompilerPanel dp) {
@@ -107,7 +119,7 @@ public class CFRDecompiler extends Decompiler {
             ClassFileSource2 cfs = new ClassFileSource2() {
 
                 @Override
-                public JarContent addJarContent(String s) {
+                public JarContent addJarContent(String s, AnalysisType analysisType) {
                     return null;
                 }
 

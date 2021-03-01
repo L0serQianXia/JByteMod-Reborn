@@ -2,21 +2,26 @@ package me.grax.jbytemod.decompiler;
 
 import me.grax.jbytemod.JByteMod;
 import me.grax.jbytemod.ui.DecompilerPanel;
+import org.jetbrains.java.decompiler.code.CodeConstants;
 import org.jetbrains.java.decompiler.main.Fernflower;
 import org.jetbrains.java.decompiler.main.decompiler.PrintStreamLogger;
 import org.jetbrains.java.decompiler.main.extern.IBytecodeProvider;
 import org.jetbrains.java.decompiler.main.extern.IResultSaver;
-import org.jetbrains.java.decompiler.struct.ContextUnit;
-import org.jetbrains.java.decompiler.struct.StructClass;
-import org.jetbrains.java.decompiler.struct.StructContext;
+import org.jetbrains.java.decompiler.struct.*;
+import org.jetbrains.java.decompiler.struct.consts.ConstantPool;
+import org.jetbrains.java.decompiler.struct.consts.PrimitiveConstant;
 import org.jetbrains.java.decompiler.struct.lazy.LazyLoader;
 import org.jetbrains.java.decompiler.util.DataInputFullStream;
+import org.jetbrains.java.decompiler.util.InterpreterUtil;
+import org.jetbrains.java.decompiler.util.VBStyleCollection;
 import org.objectweb.asm.tree.MethodNode;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.jar.Manifest;
 
@@ -59,7 +64,6 @@ public class FernflowerDecompiler extends Decompiler implements IBytecodeProvide
 
     public String decompile(byte[] b, MethodNode mn) {
         try {
-            //TODO decompile method only
             this.bytes = b;
             HashMap<String, Object> map = new HashMap<>();
             for (String key : options.keySet()) {
@@ -67,7 +71,24 @@ public class FernflowerDecompiler extends Decompiler implements IBytecodeProvide
             }
             Fernflower f = new Fernflower(this, this, map, new PrintStreamLogger(JByteMod.LOGGER));
             StructContext sc = f.structContext;
-            StructClass cl = StructClass.create(new DataInputFullStream(b), true, sc.loader);
+            DataInputFullStream in = new DataInputFullStream(b);
+            StructClass cl = StructClass.create(in, true, sc.loader);
+
+            if(mn != null){
+                Field methodField = cl.getClass().getDeclaredField("methods");
+                methodField.setAccessible(true);
+
+                VBStyleCollection<StructMethod, String> methods = (VBStyleCollection<StructMethod, String>) methodField.get(cl);
+                VBStyleCollection<StructMethod, String> result = new VBStyleCollection<>(1);
+
+                for (StructMethod method : methods) {
+                    if(method.getName().equals(mn.name) && method.getDescriptor().equals(mn.desc)){
+                        result.add(method);
+                    }
+                }
+                methodField.set(cl, result);
+            }
+
             sc.getClasses().put(cn.name, cl);
             //instead of loading a file use custom bridge, created a few getters
             String fakePath = new File("none.class").getAbsolutePath();

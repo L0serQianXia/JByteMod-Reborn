@@ -36,7 +36,7 @@ public class JAboutFrame extends JDialog {
         JTextPane title = new JTextPane();
         title.setContentType("text/html");
         title.setText(TextUtils.toHtml(jbm.getTitle()
-                + "<br/>Copyright \u00A9 2016-2018 noverify<br/><br/>Copyright \u00A9 2019 Panda<br/><br/>JByteMod by noverify, Reborn by Panda<br/><font color=\"#0000EE\"><u>https://github.com/GraxCode/JByteMod-Beta</u></font><br/>Donate LTC: <font color=\"#333333\">LhwXLVASzb6t4vHSssA9FQwq2X5gAg8EKX</font>"));
+                + "<br/>Copyright \u00A9 2016-2018 noverify<br/><br/>Copyright \u00A9 2019 Panda<br/><br/>Copyright \u00A9 2021 QianXia<br/><br/>JByteMod by noverify, Reborn by Panda, Killed by QianXia<br/><font color=\"#0000EE\"><u>https://github.com/GraxCode/JByteMod-Beta</u></font><br/>Donate LTC: <font color=\"#333333\">LhwXLVASzb6t4vHSssA9FQwq2X5gAg8EKX</font>"));
         UIDefaults defaults = new UIDefaults();
         defaults.put("TextPane[Enabled].backgroundPainter", this.getBackground());
         title.putClientProperty("Nimbus.Overrides", defaults);

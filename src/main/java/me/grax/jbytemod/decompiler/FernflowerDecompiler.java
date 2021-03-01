@@ -98,6 +98,10 @@ public class FernflowerDecompiler extends Decompiler implements IBytecodeProvide
             sc.loader.addClassLink(cn.name, new LazyLoader.Link(fakePath, null));
 
             f.decompileContext();
+
+            if(mn != null){
+                returned = "// Decompiled Method:" + mn.name + "\r\n" + returned;
+            }
             return returned;
         } catch (Exception e) {
             e.printStackTrace();

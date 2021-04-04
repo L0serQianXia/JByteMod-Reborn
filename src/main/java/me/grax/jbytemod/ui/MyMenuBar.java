@@ -54,6 +54,7 @@ public class MyMenuBar extends JMenuBar {
         if (!agent) {
             JMenuItem save = new JMenuItem(JByteMod.res.getResource("save"));
             JMenuItem saveas = new JMenuItem(JByteMod.res.getResource("save_as"));
+            JMenuItem saveSource = new JMenuItem(JByteMod.res.getResource("save_source"));
             JMenuItem load = new JMenuItem(JByteMod.res.getResource("load"));
             load.addActionListener(new ActionListener() {
                 public void actionPerformed(ActionEvent e) {
@@ -74,10 +75,16 @@ public class MyMenuBar extends JMenuBar {
                     openSaveDialogue();
                 }
             });
+            saveSource.addActionListener(new ActionListener() {
+                public void actionPerformed(ActionEvent e) {
+                    openSaveSourceDialogue();
+                }
+            });
             save.setAccelerator(KeyStroke.getKeyStroke('S', Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
             load.setAccelerator(KeyStroke.getKeyStroke('N', Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
             file.add(save);
             file.add(saveas);
+            file.add(saveSource);
             file.add(load);
         } else {
             JMenuItem refresh = new JMenuItem(JByteMod.res.getResource("refresh"));
@@ -874,6 +881,27 @@ public class MyMenuBar extends JMenuBar {
                 this.lastFile = output;
                 JByteMod.LOGGER.log("Selected output file: " + output.getAbsolutePath());
                 jbm.saveFile(output);
+            }
+        }
+    }
+
+    protected void openSaveSourceDialogue() {
+        if (jbm.getFile() != null) {
+            boolean isClass = jbm.getFile().isSingleEntry();
+            JFileChooser jfc = new JFileChooser(new File(System.getProperty("user.home") + File.separator + "Desktop"));
+            jfc.setAcceptAllFileFilterUsed(false);
+            jfc.setDialogTitle("Save");
+            jfc.setFileFilter(new FileNameExtensionFilter(isClass ? "Java Source (*.java)" : "Java Package (*.zip)",
+                    isClass ? "java" : "zip"));
+            int result = jfc.showSaveDialog(this);
+            if (result == JFileChooser.APPROVE_OPTION) {
+                File output = jfc.getSelectedFile();
+                if(!output.getAbsolutePath().endsWith(".zip")) {
+                    output = new File(output.getAbsolutePath() + ".zip");
+                }
+                this.lastFile = output;
+                JByteMod.LOGGER.log("Selected output file: " + output.getAbsolutePath());
+                jbm.saveSourceFile(output);
             }
         }
     }

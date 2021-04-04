@@ -22,6 +22,7 @@ import me.grax.jbytemod.utils.attach.RuntimeJarArchive;
 import me.grax.jbytemod.utils.gui.LookUtils;
 import me.grax.jbytemod.utils.task.AttachTask;
 import me.grax.jbytemod.utils.task.RetransformTask;
+import me.grax.jbytemod.utils.task.SaveSourceTask;
 import me.grax.jbytemod.utils.task.SaveTask;
 import me.lpk.util.ASMUtils;
 import me.lpk.util.OpUtils;
@@ -392,6 +393,14 @@ public class JByteMod extends JFrame {
     public void saveFile(File output) {
         try {
             new SaveTask(this, output, file).execute();
+        } catch (Throwable t) {
+            new ErrorDisplay(t);
+        }
+    }
+
+    public void saveSourceFile(File output) {
+        try {
+            new SaveSourceTask(this, output, file).execute();
         } catch (Throwable t) {
             new ErrorDisplay(t);
         }

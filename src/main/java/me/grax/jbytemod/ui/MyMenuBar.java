@@ -1,6 +1,10 @@
 package me.grax.jbytemod.ui;
 
 import android.util.Patterns;
+import com.javadeobfuscator.deobfuscator.asm.source.ConstantPropagatingSourceFinder;
+import com.javadeobfuscator.deobfuscator.asm.source.SourceFinder;
+import com.javadeobfuscator.deobfuscator.utils.InstructionModifier;
+import com.javadeobfuscator.deobfuscator.utils.TransformerHelper;
 import com.sun.tools.attach.VirtualMachine;
 import com.sun.tools.attach.VirtualMachineDescriptor;
 import me.grax.jbytemod.JByteMod;
@@ -20,6 +24,7 @@ import me.grax.jbytemod.utils.list.LazyListModel;
 import org.apache.commons.io.IOUtils;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.*;
+import org.objectweb.asm.tree.analysis.*;
 import org.objectweb.asm.util.CheckClassAdapter;
 import sun.tools.attach.WindowsAttachProvider;
 
@@ -231,6 +236,9 @@ public class MyMenuBar extends JMenuBar {
         // Utils:
         JMenu deobfTools = new JMenu(JByteMod.res.getResource("deobf_tools"));
         utils.add(deobfTools);
+
+        JMenu deobfuscators = new JMenu(JByteMod.res.getResource("deobfuscators"));
+        utils.add(deobfuscators);
 
         JMenu raccoon = new JMenu(JByteMod.res.getResource("raccoon"));
         utils.add(raccoon);
@@ -533,6 +541,76 @@ public class MyMenuBar extends JMenuBar {
             }
         });
         deobfTools.add(sourceRename);
+
+        JMenuItem radonV1StringLight = new JMenuItem(JByteMod.res.getResource("radon_v1_string_light"));
+        radonV1StringLight.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                int decrypted = 0;
+                HashMap<Object, Object> lol = new HashMap();
+                for (ClassNode classNode : jbm.getFile().getClasses().values()) {
+                    for (MethodNode methodNode : classNode.methods) {
+                        org.objectweb.asm.tree.analysis.Frame[] frames;
+                        InstructionModifier modifier = new InstructionModifier();
+                        try {
+                            frames = new Analyzer((Interpreter)new SourceInterpreter()).analyze(classNode.name, methodNode);
+                        }
+                        catch (AnalyzerException e1) {
+                            JByteMod.LOGGER.err("unexpected analyzer exception" + e1);
+                            continue;
+                        }
+                        for (AbstractInsnNode abstractInsnNode : TransformerHelper.instructionIterator(methodNode)) {
+                            if (abstractInsnNode.getOpcode() != 184) {
+                                continue;
+                            }
+                            MethodInsnNode methodInsnNode = (MethodInsnNode)abstractInsnNode;
+                            if (!methodInsnNode.desc.equals("(Ljava/lang/String;I)Ljava/lang/String;")) {
+                                continue;
+                            }
+
+                            if(!(methodInsnNode.getPrevious() instanceof LdcInsnNode) || !(methodInsnNode.getPrevious().getPrevious() instanceof LdcInsnNode)){
+                                continue;
+                            }
+
+                            try {
+                                String str = (String) ((LdcInsnNode) methodInsnNode.getPrevious().getPrevious()).cst;
+                                int number = (int) ((LdcInsnNode) methodInsnNode.getPrevious()).cst;
+
+                                String decryptedStr = "";
+                                decrypt:
+                                {
+                                    String string2 = str + number;
+                                    if (lol.containsKey(string2)) {
+                                        decryptedStr = (String) lol.get(string2);
+                                        break decrypt;
+                                    }
+                                    char[] arrc = str.toCharArray();
+                                    StringBuilder stringBuilder = new StringBuilder();
+                                    for (int i = 0; i < arrc.length; ++i) {
+                                        stringBuilder.append((char) (arrc[i] ^ number));
+                                    }
+                                    String string3 = stringBuilder.toString();
+                                    lol.put(string2, string3);
+                                    decryptedStr = string3;
+                                }
+
+                                modifier.remove(methodInsnNode.getPrevious());
+                                modifier.remove(methodInsnNode.getPrevious().getPrevious());
+                                modifier.replace(methodInsnNode, new LdcInsnNode(decryptedStr));
+                                ++decrypted;
+                            }
+                            catch (NoSuchElementException e11) {
+                                e11.printStackTrace();
+                            }
+                        }
+                        modifier.apply(methodNode);
+                    }
+                }
+                JOptionPane.showMessageDialog(null, "Decrypted " + decrypted + " string(s).",
+                        "Finished.", JOptionPane.INFORMATION_MESSAGE);
+            }
+        });
+        deobfuscators.add(radonV1StringLight);
 
         this.add(getSettings());
         JMenu help = new JMenu(JByteMod.res.getResource("help"));

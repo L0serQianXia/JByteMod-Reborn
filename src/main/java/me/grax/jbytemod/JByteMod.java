@@ -1,6 +1,7 @@
 package me.grax.jbytemod;
 
 import com.sun.tools.attach.VirtualMachine;
+import me.grax.jbytemod.decompiler.Decompilers;
 import me.grax.jbytemod.discord.Discord;
 import me.grax.jbytemod.logging.Logging;
 import me.grax.jbytemod.plugin.Plugin;
@@ -400,7 +401,13 @@ public class JByteMod extends JFrame {
 
     public void saveSourceFile(File output) {
         try {
-            new SaveSourceTask(this, output, file).execute();
+            int choice = JOptionPane.showOptionDialog(null, "Decompiler:", "Decompiler:", JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE, null, Decompilers.values(), 0);
+
+            if(choice == -1){
+                return;
+            }
+
+            new SaveSourceTask(this, output, file, choice).execute();
         } catch (Throwable t) {
             new ErrorDisplay(t);
         }

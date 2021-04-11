@@ -28,11 +28,11 @@ public class SaveSourceTask extends SwingWorker<Void, Integer> {
     private JarArchive file;
     private String decompiler;
 
-    public SaveSourceTask(JByteMod jbm, File output, JarArchive file, int choice) {
+    public SaveSourceTask(JByteMod jbm, File output, JarArchive file, Object choice) {
         this.output = output;
         this.file = file;
         this.jpb = jbm.getPP();
-        this.decompiler = ((Decompilers) Arrays.stream(Decompilers.values()).toArray()[choice]).getName();
+        this.decompiler = ((Decompilers) choice).getName();
     }
 
     @Override

@@ -401,9 +401,9 @@ public class JByteMod extends JFrame {
 
     public void saveSourceFile(File output) {
         try {
-            int choice = JOptionPane.showOptionDialog(null, "Decompiler:", "Decompiler:", JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE, null, Decompilers.values(), 0);
+            Object choice = JOptionPane.showInputDialog(null, "Decompiler:", "Decompiler:", JOptionPane.QUESTION_MESSAGE, null, Decompilers.values(), Decompilers.FERNFLOWER);
 
-            if(choice == -1){
+            if(choice == null){
                 return;
             }
 

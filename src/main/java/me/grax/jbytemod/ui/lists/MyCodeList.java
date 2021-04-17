@@ -452,9 +452,11 @@ public class MyCodeList extends JList<InstrEntry> {
                 @Override
                 public void actionPerformed(ActionEvent e) {
                     String message = JOptionPane.showInputDialog("Message:");
-                    mn.instructions.add(new InsnNode(Opcodes.ACONST_NULL));
-                    mn.instructions.add(new LdcInsnNode(message));
-                    mn.instructions.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "javax/swing/JOptionPane", "showMessageDialog", "(Ljava/awt/Component;Ljava/lang/Object;)V", false));
+                    mn.instructions.insert(ain, new MethodInsnNode(Opcodes.INVOKESTATIC, "javax/swing/JOptionPane", "showMessageDialog", "(Ljava/awt/Component;Ljava/lang/Object;)V", false));
+                    mn.instructions.insert(ain, new LdcInsnNode(message));
+                    mn.instructions.insert(ain, new InsnNode(Opcodes.ACONST_NULL));
+                    OpUtils.clearLabelCache();
+                    loadInstructions(mn);
                 }
             });
 

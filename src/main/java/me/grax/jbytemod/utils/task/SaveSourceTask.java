@@ -69,7 +69,8 @@ public class SaveSourceTask extends SwingWorker<Void, Integer> {
                     ClassNode node = classes.values().iterator().next();
                     ClassWriter writer = new ClassWriter(flags);
                     node.accept(writer);
-                    String result = new FernflowerDecompiler(null, null).decompile(writer.toByteArray(), null);
+                    decompiler.setNode(node, null);
+                    String result = decompiler.decompile(writer.toByteArray(), null);
                     publish(50);
                     JByteMod.LOGGER.log("Saving..");
                     Files.write(this.output.toPath(), result.getBytes(StandardCharsets.UTF_8));

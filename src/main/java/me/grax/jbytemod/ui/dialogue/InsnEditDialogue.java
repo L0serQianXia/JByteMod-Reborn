@@ -492,7 +492,7 @@ public class InsnEditDialogue extends ClassDialogue {
                                     for (MethodNode mn : node.methods) {
                                         if (mn.name.equals(mName)) {
                                             if (!descs.contains(mn.desc))
-                                                descs.add(mn.desc + (AccessHelper.isStatic(mn.access) ? " <i>(static)</>" : ""));
+                                                descs.add(mn.desc + (AccessHelper.isStatic(mn.access) ? " (static)" : ""));
                                         }
                                     }
                                     if (descs.size() == 1) {

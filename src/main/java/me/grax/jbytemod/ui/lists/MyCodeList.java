@@ -11,6 +11,7 @@ import me.grax.jbytemod.utils.ErrorDisplay;
 import me.grax.jbytemod.utils.HtmlSelection;
 import me.grax.jbytemod.utils.list.LazyListModel;
 import me.lpk.util.OpUtils;
+import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.*;
 
 import javax.swing.*;
@@ -444,6 +445,29 @@ public class MyCodeList extends JList<InstrEntry> {
             remove.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0));
             menu.add(copyText());
             menu.add(remove);
+
+            JMenu tools = new JMenu(JByteMod.res.getResource("Tools"));
+            JMenuItem messageBox = new JMenuItem("JOptionPane.showMessageDialog");
+            messageBox.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    String message = JOptionPane.showInputDialog("Message:");
+                    mn.instructions.add(new InsnNode(Opcodes.ACONST_NULL));
+                    mn.instructions.add(new LdcInsnNode(message));
+                    mn.instructions.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "javax/swing/JOptionPane", "showMessageDialog", "(Ljava/awt/Component;Ljava/lang/Object;)V", false));
+                }
+            });
+
+            tools.add(messageBox);
+            tools.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+
+                }
+            });
+
+            menu.add(tools);
+
             addPopupListener(menu);
             menu.show(jbm, (int) jbm.getMousePosition().getX(), (int) jbm.getMousePosition().getY());
         }

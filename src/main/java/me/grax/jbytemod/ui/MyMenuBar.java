@@ -969,7 +969,7 @@ public class MyMenuBar extends JMenuBar {
             JFileChooser jfc = new JFileChooser(new File(System.getProperty("user.home") + File.separator + "Desktop"));
             jfc.setAcceptAllFileFilterUsed(false);
             jfc.setDialogTitle("Save");
-            jfc.setFileFilter(new FileNameExtensionFilter(isClass ? "Java Source (*.java)" : "Java Package (*.zip)",
+            jfc.setFileFilter(new FileNameExtensionFilter(isClass ? "Java Source (*.java)" : "Zip Package (*.zip)",
                     isClass ? "java" : "zip"));
             int result = jfc.showSaveDialog(this);
             if (result == JFileChooser.APPROVE_OPTION) {

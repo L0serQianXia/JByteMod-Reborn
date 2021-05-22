@@ -100,7 +100,28 @@ public class FernflowerDecompiler extends Decompiler implements IBytecodeProvide
             f.decompileContext();
 
             if(mn != null){
-                returned = "// Decompiled Method:" + mn.name + "\r\n" + returned;
+                String[] split = returned.split("\r\n");
+                returned = "";
+                boolean flag = false;
+
+                for (int i = 0; i < split.length; i++) {
+                    String line = split[i];
+                    if(line.contains(mn.name) && line.contains("(") && line.contains(")") && line.contains("{")){
+                        flag = true;
+                    }
+
+                    if(i == split.length - 1){
+                        break;
+                    }
+
+                    if(flag){
+                        line = line.replaceFirst("   ", "");
+                        returned += line + "\r\n";
+                    }
+                }
+            }
+            if(returned == ""){
+                returned = "// NOTHING";
             }
             return returned;
         } catch (Exception e) {
